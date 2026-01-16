@@ -50,3 +50,4 @@ cypresstest-output.xml
 cypress/downloads
 pyinstaller/electron/output.css
 pyinstaller/electron/typography.css
+.git/*

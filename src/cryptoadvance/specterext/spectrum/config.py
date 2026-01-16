@@ -25,16 +25,11 @@ class BaseConfig(object):
 
     # The prepopulated options
     ELECTRUM_OPTIONS = {
-        "electrum.emzy.de": {"host": "electrum.emzy.de", "port": 50002, "ssl": True},
-        "electrum.blockstream.info": {
-            "host": "electrum.blockstream.info",
-            "port": 50002,
-            "ssl": True,
-        },
+        "electrum": {"host": "127.0.0.1", "port": 50001, "ssl": False}
     }
 
     # The one which is chosen at startup
-    ELECTRUM_DEFAULT_OPTION = "electrum.emzy.de"
+    ELECTRUM_DEFAULT_OPTION = "electrum"
 
     SUPPRESS_JSONRPC_LOGGING = _get_bool_env_var(
         "SUPPRESS_JSONRPC_LOGGING", default="false"
