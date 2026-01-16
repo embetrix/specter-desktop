@@ -15,6 +15,7 @@ from importlib import import_module
 from inspect import isclass
 from pathlib import Path
 from pkgutil import iter_modules
+from typing import Optional, Set
 
 from cryptoadvance import specter
 
@@ -23,6 +24,47 @@ from ..specter_error import SpecterError
 from .version import VersionChecker, compare
 
 logger = logging.getLogger(__name__)
+
+
+def _get_bool_env_var(name: str, default: bool = False) -> bool:
+    value = os.environ.get(name)
+    if value is None:
+        return default
+    return str(value).strip().lower() in {"1", "true", "yes", "y", "on"}
+
+
+def _parse_migration_id_token(token: str) -> Optional[int]:
+    token = token.strip()
+    if not token:
+        return None
+    if token.isdigit():
+        return int(token)
+    # Allow forms like "SpecterMigration_0002" or "SpecterMigration_2"
+    if token.startswith("SpecterMigration_"):
+        try:
+            return int(token.split("_", 1)[1])
+        except Exception:
+            return None
+    return None
+
+
+def _get_skipped_migration_ids() -> Set[int]:
+    """Reads `SPECTER_MIGRATIONS_SKIP` env var.
+
+    Supported formats:
+    - "2" or "2,3" or "2 3"
+    - "SpecterMigration_0002,SpecterMigration_0010"
+    """
+    raw = os.environ.get("SPECTER_MIGRATIONS_SKIP", "")
+    if not raw:
+        return set()
+    tokens = raw.replace(";", ",").replace(" ", ",").split(",")
+    ids: Set[int] = set()
+    for token in tokens:
+        migration_id = _parse_migration_id_token(token)
+        if migration_id is not None:
+            ids.add(migration_id)
+    return ids
 
 
 class SpecterMigration:
@@ -101,6 +143,12 @@ class SpecterMigrator:
         """Returns a list of instances from all the migration_1234-classes which hasn't been
         executed yet (according to migration_data.json)
         """
+        if _get_bool_env_var("SPECTER_DISABLE_MIGRATIONS", default=False):
+            logger.warning(
+                "Migrations are disabled via SPECTER_DISABLE_MIGRATIONS; skipping planning."
+            )
+            return []
+        skipped_ids = _get_skipped_migration_ids()
         migration_objects_list = []
         # The path where all the migrations are located:
         package_dir = str(Path(Path(__file__).resolve().parent, "migrations").resolve())
@@ -108,6 +156,11 @@ class SpecterMigrator:
             migration_obj = migration_class(self)
 
             migration_id = SpecterMigrator.calculate_id(migration_obj)
+            if migration_id in skipped_ids:
+                logger.warning(
+                    f"Skipping migration id {migration_id} due to SPECTER_MIGRATIONS_SKIP"
+                )
+                continue
             if not self.mig.has_migration_executed(migration_id):
                 if migration_obj.should_execute():
                     logger.debug(
@@ -121,6 +174,11 @@ class SpecterMigrator:
         return migration_objects_list
 
     def execute_migrations(self, migration_object_list=None):
+        if _get_bool_env_var("SPECTER_DISABLE_MIGRATIONS", default=False):
+            logger.warning(
+                "Migrations are disabled via SPECTER_DISABLE_MIGRATIONS; skipping execution."
+            )
+            return
         if migration_object_list == None:
             migration_object_list = self.plan_migration()
         if not migration_object_list:
