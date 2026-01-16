@@ -78,7 +78,7 @@ class SpectrumService(Service):
         logger.info(
             f"Intitializing Database in {app.config['SQLALCHEMY_DATABASE_URI']}"
         )
-        db.init_app(app)
+        db.init_app(app._get_current_object() if hasattr(app, '_get_current_object') else app)
         db.create_all()
         # Check whether there is a Spectrum node in the node manager of Specter
         if self.is_spectrum_node_available:
