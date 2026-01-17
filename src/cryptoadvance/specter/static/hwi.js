@@ -3,8 +3,9 @@ function generateId() {
 }
 
 class HWIBridge {
-    constructor(url, chain) {
+    constructor(url, chain, defaultUrl='/hwi/api/') {
         this.url = url;
+        this.defaultUrl = defaultUrl;
         this.deviceTypes = ['specter', 'coldcard', 'keepkey', 'ledger', 'bitbox02', 'trezor'];
         this.chain = chain;
         this.in_progress = false;
@@ -37,7 +38,7 @@ class HWIBridge {
                     'method': command, 
                     'id': requestId,
                     params,
-                    forwarded_request: (this.url !== '/hwi/api/'),
+                    forwarded_request: (this.url !== this.defaultUrl),
                 })
             }).then(response => response.json());
         }finally{

@@ -35,14 +35,15 @@
 </div>
 
 <script type="text/javascript">
-    let hwiURL = '/hwi/api/';
+    const defaultHwiURL = '{{ url_for("hwi_server.api") }}';
+    let hwiURL = defaultHwiURL;
     if (
         '{{ specter.hwi_bridge_url }}'.startsWith('http://localhost') ||
         '{{ specter.hwi_bridge_url }}'.startsWith('http://127.0.0.1')
     ) {
         hwiURL = '{{ specter.hwi_bridge_url }}';
     }
-    var hwi = new HWIBridge(hwiURL, '{{ specter.chain }}');
+    var hwi = new HWIBridge(hwiURL, '{{ specter.chain }}', defaultHwiURL);
 </script>
 
 <script type="text/javascript">
